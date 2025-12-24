@@ -1,0 +1,99 @@
+---
+kind: pipeline
+name: default
+type: kubernetes
+
+platform:
+  os: linux
+  arch: amd64
+  
+trigger:
+  include:
+    - feature/*
+    - main
+    
+steps:
+  - name: build_and_test_image
+    pull: Always
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind:latest
+    commands:
+      - n=0; while [ "$n" -lt 60 ] && ! docker stats --no-stream >/dev/null 2>&1; do n=$(( n + 1 )); sleep 1; done
+      - docker build --no-cache  -t sas/hof-forms-waf:$${DRONE_COMMIT_SHA} openresty/.
+    when:
+      include:
+      - main
+      - feature/*
+      event: 
+      - push
+      - pull_request
+
+  - name: scan_image
+    pull: always
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/trivy/client:latest
+    resources:
+      limits:
+        cpu: 1000
+        memory: 1024Mi
+    environment:
+      IMAGE_NAME: sas/hof-forms-waf:${DRONE_COMMIT_SHA}
+      TRIVY_SKIP_FILES: /etc/keys/key
+      SEVERITY: MEDIUM,HIGH,CRITICAL  --dependency-tree --format table
+      FAIL_ON_DETECTION: false
+      IGNORE_UNFIXED: false
+    when:
+      event: 
+      - push
+      - pull_request
+    depends_on:
+      - build_and_test_image
+
+  - name: openresty_image_to_ecr
+    pull: if-not-exists
+    image: plugins/ecr
+    settings:
+      access_key:
+        from_secret: aws_access_key_id
+      secret_key:
+        from_secret: aws_secret_access_key
+      region: eu-west-2
+      repo: sas/hof-forms-waf
+      context: openresty/.
+      dockerfile: openresty/Dockerfile
+      registry: 340268328991.dkr.ecr.eu-west-2.amazonaws.com
+      tags:
+        - ${DRONE_COMMIT_SHA}
+    when:
+      event: 
+      - push
+      - pull_request
+    depends_on:
+      - build_and_test_image
+    
+  - name: admin_ui_image_to_ecr
+    pull: if-not-exists
+    image: plugins/ecr
+    settings:
+      access_key:
+        from_secret: aws_access_key_id_admin
+      secret_key:
+        from_secret: aws_secret_access_key_admin
+      region: eu-west-2
+      repo: sas/hof-forms-waf-admin-ui
+      context: admin-ui/.
+      dockerfile: admin-ui/Dockerfile
+      registry: 340268328991.dkr.ecr.eu-west-2.amazonaws.com
+      tags:
+        - ${DRONE_COMMIT_SHA}
+    when:
+      event: 
+      - push
+      - pull_request
+    depends_on:
+      - openresty_image_to_ecr
+
+services:
+  - name: docker
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind:latest
+volumes:
+  - name: dockersock
+    temp: {}
