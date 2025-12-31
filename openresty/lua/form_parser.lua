@@ -37,8 +37,6 @@ local function parse_urlencoded(body)
 end
 
 -- Parse multipart form data
-local upload = require "resty.upload"
-
 local function parse_multipart()
     local chunk_size = 8192
     local form, err = upload:new(chunk_size)
@@ -47,7 +45,7 @@ local function parse_multipart()
         return nil, "failed to create upload form: " .. (err or "unknown")
     end
 
-    form:set_timeout(30000) -- 30 seconds
+    form:set_timeout(5000) -- 5 seconds
 
     local data = {}
     local current_field = nil
@@ -66,33 +64,34 @@ local function parse_multipart()
             if res[1] and res[1]:lower() == "content-disposition" then
                 local header_value = res[2] or ""
 
-                current_field =
-                    header_value:match('name="([^"]*)"') or
-                    header_value:match("name=([^;%s]+)")
+                -- Extract field name
+                local name = header_value:match('name="([^"]*)"')
+                if not name then
+                    name = header_value:match("name=([^;%s]+)")
+                end
+                current_field = name
 
-                current_filename =
-                    header_value:match('filename="([^"]*)"') or
-                    header_value:match("filename=([^;%s]+)")
-
-                current_value = {}
+                -- Extract filename if present (file upload)
+                local filename = header_value:match('filename="([^"]*)"')
+                if not filename then
+                    filename = header_value:match("filename=([^;%s]+)")
+                end
+                current_filename = filename
             end
 
         elseif typ == "body" then
-            -- Always drain body chunks to avoid timeout
-            if current_field and not current_filename then
-                table.insert(current_value, res)
+            if current_field then
+                -- Skip file contents, only track filename
+                if current_filename then
+                    current_value = {"[FILE:" .. current_filename .. "]"}
+                else
+                    table.insert(current_value, res)
+                end
             end
-            -- file body chunks are intentionally discarded
 
         elseif typ == "part_end" then
-            if current_field then
-                local value
-
-                if current_filename then
-                    value = "[FILE:" .. current_filename .. "]"
-                else
-                    value = table.concat(current_value)
-                end
+            if current_field and #current_value > 0 then
+                local value = table.concat(current_value)
 
                 -- Handle arrays
                 if data[current_field] then
