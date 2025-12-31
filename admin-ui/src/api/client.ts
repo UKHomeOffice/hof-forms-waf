@@ -1014,6 +1014,30 @@ import type {
   FingerprintProfile,
   FingerprintProfileTestRequest,
   FingerprintProfileTestResult,
+  DefenseProfile,
+  DefenseMetadata,
+  OperatorMetadata,
+  ActionMetadata,
+  DefenseProfileSimulationResult,
+  DefenseProfileValidationResult,
+  AttackSignature,
+  AttackSignatureListResponse,
+  AttackSignatureResponse,
+  AttackSignatureCreateResponse,
+  AttackSignatureUpdateResponse,
+  AttackSignatureDeleteResponse,
+  AttackSignatureCloneResponse,
+  AttackSignatureEnableResponse,
+  AttackSignatureDisableResponse,
+  AttackSignatureStatsResponse,
+  AttackSignatureTestResponse,
+  AttackSignatureBuiltinsResponse,
+  AttackSignatureResetBuiltinsResponse,
+  AttackSignatureTagsResponse,
+  AttackSignatureExportResponse,
+  AttackSignatureImportResponse,
+  AttackSignatureValidateResponse,
+  AttackSignatureStatsSummaryResponse,
 } from './types'
 
 export const fingerprintProfilesApi = {
@@ -1057,4 +1081,272 @@ export const fingerprintProfilesApi = {
     request<{ reset: boolean; count: number }>('/fingerprint-profiles/reset-builtin', {
       method: 'POST',
     }),
+}
+
+// Defense Profiles API
+export const defenseProfilesApi = {
+  // List all profiles
+  list: () =>
+    request<{ profiles: DefenseProfile[] }>('/defense-profiles'),
+
+  // Get a single profile
+  get: (id: string) =>
+    request<{ profile: DefenseProfile }>(`/defense-profiles/${encodeURIComponent(id)}`),
+
+  // Get profile with inheritance resolved
+  getResolved: (id: string) =>
+    request<{ profile: DefenseProfile }>(`/defense-profiles/${encodeURIComponent(id)}/resolved`),
+
+  // Create a profile
+  create: (data: Omit<DefenseProfile, 'builtin'>) =>
+    request<{ created: boolean; profile: DefenseProfile }>('/defense-profiles', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Update a profile
+  update: (id: string, data: Partial<DefenseProfile>) =>
+    request<{ updated: boolean; profile: DefenseProfile }>(`/defense-profiles/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // Delete a profile (built-in profiles cannot be deleted)
+  delete: (id: string) =>
+    request<{ deleted: boolean; id: string }>(`/defense-profiles/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+
+  // Clone a profile
+  clone: (sourceId: string, newId: string, newName?: string) =>
+    request<{ cloned: boolean; profile: DefenseProfile }>(`/defense-profiles/${encodeURIComponent(sourceId)}/clone`, {
+      method: 'POST',
+      body: JSON.stringify({ id: newId, name: newName }),
+    }),
+
+  // Enable/disable a profile
+  enable: (id: string) =>
+    request<{ enabled: boolean; profile: DefenseProfile }>(`/defense-profiles/${encodeURIComponent(id)}/enable`, {
+      method: 'POST',
+    }),
+
+  disable: (id: string) =>
+    request<{ disabled: boolean; profile: DefenseProfile }>(`/defense-profiles/${encodeURIComponent(id)}/disable`, {
+      method: 'POST',
+    }),
+
+  // Get built-in profile IDs
+  getBuiltins: () =>
+    request<{ builtin_ids: string[] }>('/defense-profiles/builtins'),
+
+  // Validate a profile graph
+  validate: (profile: Partial<DefenseProfile>) =>
+    request<DefenseProfileValidationResult>('/defense-profiles/validate', {
+      method: 'POST',
+      body: JSON.stringify(profile),
+    }),
+
+  // Simulate request through a profile
+  simulate: (profileId: string, requestData: {
+    form_data?: Record<string, unknown>
+    client_ip?: string
+    host?: string
+    path?: string
+    method?: string
+    headers?: Record<string, string>
+  }) =>
+    request<{ valid: boolean; simulation?: DefenseProfileSimulationResult; errors?: string[] }>('/defense-profiles/simulate', {
+      method: 'POST',
+      body: JSON.stringify({ profile_id: profileId, ...requestData }),
+    }),
+
+  // Get metadata for UI
+  getMetadata: () =>
+    request<{
+      defenses: Record<string, DefenseMetadata>
+      operators: Record<string, OperatorMetadata>
+      actions: Record<string, ActionMetadata>
+    }>('/defense-profiles/metadata'),
+
+  // Reset built-in profiles to defaults
+  resetBuiltins: () =>
+    request<{ reset: boolean; count: number }>('/defense-profiles/reset-builtins', {
+      method: 'POST',
+    }),
+}
+
+// Attack Signatures API
+export interface AttackSignatureListOptions {
+  tag?: string
+  active?: boolean
+  enabled?: boolean
+  include_stats?: boolean
+}
+
+export const attackSignaturesApi = {
+  // List all signatures
+  list: (options?: AttackSignatureListOptions) => {
+    const params = new URLSearchParams()
+    if (options?.tag) params.append('tag', options.tag)
+    if (options?.active !== undefined) params.append('active', String(options.active))
+    if (options?.enabled !== undefined) params.append('enabled', String(options.enabled))
+    if (options?.include_stats !== undefined) params.append('include_stats', String(options.include_stats))
+    const query = params.toString()
+    return request<AttackSignatureListResponse>(`/attack-signatures${query ? `?${query}` : ''}`)
+  },
+
+  // Get a single signature
+  get: (id: string) =>
+    request<AttackSignatureResponse>(`/attack-signatures/${encodeURIComponent(id)}`),
+
+  // Create a signature
+  create: (data: Omit<AttackSignature, 'builtin' | 'builtin_version' | 'stats' | 'created_at' | 'updated_at'>) =>
+    request<AttackSignatureCreateResponse>('/attack-signatures', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Update a signature
+  update: (id: string, data: Partial<AttackSignature>) =>
+    request<AttackSignatureUpdateResponse>(`/attack-signatures/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // Delete a signature (built-in signatures cannot be deleted)
+  delete: (id: string) =>
+    request<AttackSignatureDeleteResponse>(`/attack-signatures/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+
+  // Clone a signature
+  clone: (sourceId: string, newId: string, newName?: string) =>
+    request<AttackSignatureCloneResponse>(`/attack-signatures/${encodeURIComponent(sourceId)}/clone`, {
+      method: 'POST',
+      body: JSON.stringify({ id: newId, name: newName }),
+    }),
+
+  // Enable/disable a signature
+  enable: (id: string) =>
+    request<AttackSignatureEnableResponse>(`/attack-signatures/${encodeURIComponent(id)}/enable`, {
+      method: 'POST',
+    }),
+
+  disable: (id: string) =>
+    request<AttackSignatureDisableResponse>(`/attack-signatures/${encodeURIComponent(id)}/disable`, {
+      method: 'POST',
+    }),
+
+  // Get signature statistics
+  getStats: (id: string) =>
+    request<AttackSignatureStatsResponse>(`/attack-signatures/${encodeURIComponent(id)}/stats`),
+
+  // Test signature against sample data
+  test: (id: string, sample: {
+    user_agent?: string
+    content?: string
+    username?: string
+    password?: string
+  }) =>
+    request<AttackSignatureTestResponse>(`/attack-signatures/${encodeURIComponent(id)}/test`, {
+      method: 'POST',
+      body: JSON.stringify({ sample }),
+    }),
+
+  // Get overall stats summary
+  getStatsSummary: () =>
+    request<AttackSignatureStatsSummaryResponse>('/attack-signatures/stats/summary'),
+
+  // Get built-in signature IDs
+  getBuiltins: () =>
+    request<AttackSignatureBuiltinsResponse>('/attack-signatures/builtins'),
+
+  // Reset built-in signatures to defaults
+  resetBuiltins: () =>
+    request<AttackSignatureResetBuiltinsResponse>('/attack-signatures/reset-builtins', {
+      method: 'POST',
+    }),
+
+  // Get all tags with counts
+  getTags: () =>
+    request<AttackSignatureTagsResponse>('/attack-signatures/tags'),
+
+  // Export signatures
+  export: (ids?: string[]) => {
+    const params = ids?.length ? `?ids=${ids.join(',')}` : ''
+    return request<AttackSignatureExportResponse>(`/attack-signatures/export${params}`)
+  },
+
+  // Import signatures
+  import: (signatures: AttackSignature[], options?: { overwrite?: boolean; skip_existing?: boolean }) =>
+    request<AttackSignatureImportResponse>('/attack-signatures/import', {
+      method: 'POST',
+      body: JSON.stringify({ signatures, ...options }),
+    }),
+
+  // Validate a signature
+  validate: (signature: Partial<AttackSignature>) =>
+    request<AttackSignatureValidateResponse>('/attack-signatures/validate', {
+      method: 'POST',
+      body: JSON.stringify(signature),
+    }),
+}
+
+// Backup and Restore API
+import type {
+  Backup,
+  BackupEntityInfo,
+  BackupExportOptions,
+  BackupImportMode,
+  BackupImportResponse,
+  BackupValidationResult,
+} from './types'
+
+export const backupApi = {
+  // Get available entity types
+  getEntities: () =>
+    request<{ entities: BackupEntityInfo[] }>('/backup/entities'),
+
+  // Export configuration
+  export: (options?: BackupExportOptions) => {
+    const params = new URLSearchParams()
+    if (options?.include_users !== undefined) params.append('include_users', String(options.include_users))
+    if (options?.include_builtins !== undefined) params.append('include_builtins', String(options.include_builtins))
+    if (options?.entities?.length) params.append('entities', options.entities.join(','))
+    const query = params.toString()
+    return request<Backup>(`/backup/export${query ? `?${query}` : ''}`)
+  },
+
+  // Validate backup file
+  validate: (backup: Backup) =>
+    request<BackupValidationResult>('/backup/validate', {
+      method: 'POST',
+      body: JSON.stringify(backup),
+    }),
+
+  // Import configuration
+  import: (backup: Backup, mode: BackupImportMode = 'merge', includeUsers: boolean = true) =>
+    request<BackupImportResponse>('/backup/import', {
+      method: 'POST',
+      body: JSON.stringify({
+        backup,
+        mode,
+        include_users: includeUsers,
+      }),
+    }),
+
+  // Download backup as file (helper)
+  downloadExport: async (options?: BackupExportOptions) => {
+    const backup = await backupApi.export(options)
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `waf-backup-${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    return backup
+  },
 }

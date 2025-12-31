@@ -23,6 +23,9 @@ import {
   Activity,
   Server,
   Fingerprint,
+  Workflow,
+  Target,
+  Archive,
 } from 'lucide-react'
 
 const navigation = [
@@ -47,6 +50,8 @@ const navigation = [
     name: 'Security',
     children: [
       { name: 'Form Timing', href: '/security/timing', icon: Clock },
+      { name: 'Defense Profiles', href: '/security/defense-profiles', icon: Workflow },
+      { name: 'Attack Signatures', href: '/security/attack-signatures', icon: Target },
       { name: 'Fingerprint Profiles', href: '/security/fingerprint-profiles', icon: Fingerprint },
       { name: 'GeoIP', href: '/security/geoip', icon: MapPin },
       { name: 'IP Reputation', href: '/security/reputation', icon: ShieldAlert },
@@ -78,6 +83,7 @@ const navigation = [
     children: [
       { name: 'User Management', href: '/admin/users', icon: Users },
       { name: 'Auth Providers', href: '/admin/providers', icon: KeyRound },
+      { name: 'Backup & Restore', href: '/admin/backup', icon: Archive },
       { name: 'Cluster Status', href: '/cluster', icon: Server },
     ],
   },

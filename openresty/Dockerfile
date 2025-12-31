@@ -12,11 +12,17 @@ USER root
 # - lua-resty-openidc: OpenID Connect relying party for SSO
 # - lua-resty-jwt: JWT parsing and validation (dependency of openidc)
 # - lua-resty-session: Session management (dependency of openidc)
+# - lua-resty-woothee: User-Agent parser for header consistency checks
+# - lua-iconv: Character set conversion for non-UTF-8 form data
 # Note: LDAP support uses pure Lua implementation via cosocket (no external deps)
-RUN apk add --no-cache curl perl openssl libmaxminddb libmaxminddb-dev && \
+RUN apk add --no-cache curl perl openssl libmaxminddb libmaxminddb-dev luarocks5.1 && \
+    apk add --no-cache --virtual .build-deps musl-dev build-base && \
     opm get ledgetech/lua-resty-http && \
     opm get anjia0532/lua-resty-maxminddb && \
     opm get zmartzone/lua-resty-openidc && \
+    luarocks-5.1 install lua-resty-woothee && \
+    luarocks-5.1 install lua-iconv ICONV_DIR=/usr LUA_INCDIR=/usr/local/openresty/luajit/include/luajit-2.1 && \
+    apk del .build-deps && \
     mkdir -p /usr/share/GeoIP /var/log/nginx /etc/nginx/ssl \
              /usr/local/openresty/nginx/client_body_temp \
              /usr/local/openresty/nginx/proxy_temp \
@@ -25,6 +31,7 @@ RUN apk add --no-cache curl perl openssl libmaxminddb libmaxminddb-dev && \
              /usr/local/openresty/nginx/scgi_temp \
              /var/run && \
     ln -s /dev/stdout /var/log/nginx/access.log && \
+    ln -s /dev/stdout /var/log/nginx/admin-access.log && \
     ln -s /dev/stderr /var/log/nginx/error.log && \
     chown -R nobody:nobody /etc/nginx/ssl /var/log/nginx \
            /usr/local/openresty/nginx/client_body_temp \
