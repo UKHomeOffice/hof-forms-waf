@@ -20,11 +20,16 @@ import TimingConfig from '@/pages/security/TimingConfig'
 import GeoIPConfig from '@/pages/security/GeoIPConfig'
 import ReputationConfig from '@/pages/security/ReputationConfig'
 import { FingerprintProfiles } from '@/pages/security/FingerprintProfiles'
+import DefenseProfiles from '@/pages/security/DefenseProfiles'
+import DefenseProfileEditor from '@/pages/security/DefenseProfileEditor'
+import AttackSignatures from '@/pages/security/AttackSignatures'
+import AttackSignatureEditor from '@/pages/security/AttackSignatureEditor'
 import BehavioralAnalytics from '@/pages/analytics/BehavioralAnalytics'
 import ClusterStatus from '@/pages/cluster/ClusterStatus'
 import { About } from '@/pages/About'
 import { Users } from '@/pages/admin/Users'
 import { AuthProviders } from '@/pages/admin/AuthProviders'
+import { BackupRestore } from '@/pages/settings/BackupRestore'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -74,11 +79,17 @@ export default function App() {
                 <Route path="/security/geoip" element={<GeoIPConfig />} />
                 <Route path="/security/reputation" element={<ReputationConfig />} />
                 <Route path="/security/fingerprint-profiles" element={<FingerprintProfiles />} />
+                <Route path="/security/defense-profiles" element={<DefenseProfiles />} />
+                <Route path="/security/defense-profiles/new" element={<DefenseProfileEditor />} />
+                <Route path="/security/defense-profiles/:id" element={<DefenseProfileEditor />} />
+                <Route path="/security/attack-signatures" element={<AttackSignatures />} />
+                <Route path="/security/attack-signatures/:id" element={<AttackSignatureEditor />} />
                 <Route path="/analytics/behavioral" element={<BehavioralAnalytics />} />
                 <Route path="/cluster" element={<ClusterStatus />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/admin/users" element={<Users />} />
                 <Route path="/admin/providers" element={<AuthProviders />} />
+                <Route path="/admin/backup" element={<BackupRestore />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AppLayout>

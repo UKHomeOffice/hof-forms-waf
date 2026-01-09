@@ -8,7 +8,7 @@ platform:
   arch: amd64
   
 trigger:
-  include:
+  branch:
     - feature/*
     - main
     
@@ -20,12 +20,8 @@ steps:
       - n=0; while [ "$n" -lt 60 ] && ! docker stats --no-stream >/dev/null 2>&1; do n=$(( n + 1 )); sleep 1; done
       - docker build --no-cache  -t sas/hof-forms-waf:$${DRONE_COMMIT_SHA} openresty/.
     when:
-      include:
-      - main
-      - feature/*
-      event: 
-      - push
-      - pull_request
+      branch: main
+      event: [ push, pull_request ]
 
   - name: scan_image
     pull: always
@@ -41,9 +37,8 @@ steps:
       FAIL_ON_DETECTION: false
       IGNORE_UNFIXED: false
     when:
-      event: 
-      - push
-      - pull_request
+      branch: main
+      event: [ push, pull_request ]
     depends_on:
       - build_and_test_image
 
@@ -63,9 +58,8 @@ steps:
       tags:
         - ${DRONE_COMMIT_SHA}
     when:
-      event: 
-      - push
-      - pull_request
+      branch: main
+      event: [ push, pull_request ]
     depends_on:
       - build_and_test_image
     
@@ -85,9 +79,8 @@ steps:
       tags:
         - ${DRONE_COMMIT_SHA}
     when:
-      event: 
-      - push
-      - pull_request
+      branch: main
+      event: [ push, pull_request ]
     depends_on:
       - openresty_image_to_ecr
 
